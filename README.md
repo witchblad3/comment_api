@@ -1,10 +1,10 @@
-# Comments API (Laravel 11) — тестовое задание
+# Comments API — тестовое задание
 
 Простой REST API для контента (Новости, Видео-посты) и системы комментариев с бесконечной вложенностью (ответ на комментарий — это отдельный комментарий). Реализовано в стиле “контроллер → request → DTO (Spatie Data) → action → repository (read/write) → resource”.
 
 ## Стек
 - PHP 8.2+
-- Laravel 11+
+- Laravel
 - MySQL 8+
 - Laravel Sanctum (аутентификация для операций с комментариями)
 - spatie/laravel-data (DTO)
