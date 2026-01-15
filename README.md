@@ -1,59 +1,72 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Comments API (Laravel 11) — тестовое задание
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Простой REST API для контента (Новости, Видео-посты) и системы комментариев с бесконечной вложенностью (ответ на комментарий — это отдельный комментарий). Реализовано в стиле “тонкий контроллер → request → DTO (Spatie Data) → action → repository (read/write) → resource”.
 
-## About Laravel
+## Стек
+- PHP 8.2+
+- Laravel 11+
+- MySQL 8+
+- Laravel Sanctum (аутентификация для операций с комментариями)
+- spatie/laravel-data (DTO)
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Функциональность
+- CRUD News
+- CRUD VideoPost (+ загрузка видеофайла)
+- CRUD Comment от лица пользователя к:
+  - News
+  - VideoPost
+  - Comment (ответы любой глубины)
+- При чтении News/VideoPost API отдаёт комментарии с курсорной пагинацией
+- При чтении Comment API отдаёт ответы (replies) с курсорной пагинацией
+- Политики доступа: редактировать/удалять комментарий может только автор
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Структура проекта
+- `app/Http/Controllers/Api/*` — контроллеры
+- `app/Http/Requests/*` — валидация и геттеры
+- `app/Services/*/Dto` — DTO через `Data::from([...])`, без конструкторов
+- `app/Services/*/Actions` — бизнес-логика
+- `app/Repositories/Read/*` и `app/Repositories/Write/*` — доступ к данным
+- `app/Http/Resources/*` — формирование ответа API
+- `app/Policies` — политики доступа
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+### 1) Установка зависимостей
+```bash
+composer install
+cp .env.example .env
+php artisan key:generate
+```
+Создай БД в MySQL, затем укажи креды в .env:
 
-## Learning Laravel
+```
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=comments_api
+DB_USERNAME=root
+DB_PASSWORD=secret
+```
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+API эндпоинты (основные)
+Auth
+POST /api/auth/register
+POST /api/auth/login
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+News
+GET /api/news?per_page=20
+POST /api/news
+GET /api/news/{news}?comments_per_page=20&cursor=... — комментарии курсором
+PUT /api/news/{news}
+DELETE /api/news/{news}
 
-## Laravel Sponsors
+VideoPosts
+GET /api/video-posts?per_page=20
+POST /api/video-posts (multipart/form-data, поле video опционально)
+GET /api/video-posts/{video_post}?comments_per_page=20&cursor=...
+PUT /api/video-posts/{video_post}
+DELETE /api/video-posts/{video_post}
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
-
-### Premium Partners
-
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
-
-## Contributing
-
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
-
-## Code of Conduct
-
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
-
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
-
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Comments
+GET /api/comments/{comment}?replies_per_page=20&cursor=... — ответы курсором
+POST /api/comments (auth)
+PUT /api/comments/{comment} (auth, только автор)
+DELETE /api/comments/{comment} (auth, только автор)
